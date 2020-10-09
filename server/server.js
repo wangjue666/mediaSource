@@ -9,7 +9,8 @@ let app = new Koa()
 let router = new Router()
 
 router.get("/meta/:name",async ctx=>{
-    const {name} = ctx.params.name
+    const {name} = ctx.params
+    console.log("name",name)
     let buffer = await fs.readFile(path.resolve("videos/", name+'_dash.mpd'))
     ctx.body = buffer.toString()
 })
