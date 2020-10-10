@@ -1,6 +1,5 @@
 # mediaSource
- mediaSource视频点播服务
- 
+ mediaSource视频音频点播服务，可用在直播，音视频等流媒体服务，搭建了一个基本推流缓存服务 
 ### 1.下载安装mp4box 
 
 https://gpac.wp.imt.fr/downloads/
