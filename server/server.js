@@ -19,13 +19,15 @@ function readXml(path){
                   resolve(xml)
               }
           })  
-       }, reject)
+       }).catch(e=>reject(e))
     })
    
 }
-
-router.get("/meta/:name",async ctx=>{
-    const {name} = ctx.params
+const _cache = {}
+async function readMPD(name){
+    if(_cache[name]){
+        return _cache[name]
+    }
     let file = path.resolve("videos/", name+'_dash.mpd')
     let xml = await readXml(file)
    
@@ -53,10 +55,37 @@ router.get("/meta/:name",async ctx=>{
     ].map(item=>item.split("-").map(Number))
     
    
-    ctx.body = {
+    _cache[name] = {
         duration: Math.floor(duration),mimeType, codecs, width, height, segmentSize,
         segments
     }
+    return _cache[name]
+}
+async function read(file, start, end){
+    let buffer = Buffer.alloc(end - start)
+    let fd = await fs.open(file, 'r')
+    let res = await fs.read(fd, buffer, 0, end-start, start)
+    assert(res == end-start, "unexcepted")
+    await fs.close(fd)
+    return buffer
+}
+
+router.get("/meta/:name",async ctx=>{
+    const {name} = ctx.params
+    let mpd = await readMPD(name)
+    let {duration,mimeType, codecs, width, height, segmentSize} = mpd
+    ctx.body = {duration,mimeType, codecs, width, height, segmentSize}
+})
+
+router.get("/video/:name/:block", async ctx=>{
+    const {name, block} = ctx.params
+    let mpd = await readMPD(name)
+    const [start, end] = mpd.segments[block]
+    let buffer = await read(path.resolve("videos/", `${name}_dashinit.mp4`), start, end)
+   
+    ctx.set("content-type", mpd.mimeType)
+    ctx.set("content-length", buffer.length)
+    ctx.body = buffer
 })
 
 
