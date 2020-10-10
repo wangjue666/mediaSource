@@ -74,6 +74,7 @@ router.get("/meta/:name",async ctx=>{
     const {name} = ctx.params
     let mpd = await readMPD(name)
     let {duration,mimeType, codecs, width, height, segmentSize, segmentLen} = mpd
+    ctx.set("cache-control", "max-age=2592000")
     ctx.body = {duration,mimeType, codecs, width, height, segmentSize, segmentLen}
 })
 
@@ -85,6 +86,7 @@ router.get("/video/:name/:block", async ctx=>{
    
     ctx.set("content-type", mpd.mimeType)
     ctx.set("content-length", buffer.length)
+    ctx.set("cache-control", "max-age=2592000")
     ctx.body = buffer
 })
 

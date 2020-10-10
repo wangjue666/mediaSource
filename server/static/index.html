@@ -14,7 +14,7 @@
         const url_meta = "/meta/a"
         const url_video = "/video/a"
         const video = document.querySelector("#v1")
-
+        const timeToLoad = 30 //当剩余数据不足xx秒时 去加载
 
         ;;;;;;;;;;;
         (async function (){
@@ -27,7 +27,7 @@
             //2.读取视频信息
             let {data: {duration,mimeType, codecs, width, height, segmentSize, segmentLen}} = await axios(url_meta)
             console.log(duration,mimeType, codecs, width, height, segmentSize, segmentLen)
-            const segmentCount = Math.ceil(duration*1000/segmentSize)
+            //const segmentCount = Math.ceil(duration*1000/segmentSize)
             console.log(segmentLen)
             const encode = `${mimeType}; codecs=${codecs}`
             //3.检测媒体编码是否支持
@@ -40,24 +40,86 @@
             let ms = new MediaSource()
             let url = URL.createObjectURL(ms)
             video.src = url
+           
             ms.addEventListener("sourceopen", async ()=>{
                 let buffer = ms.addSourceBuffer(encode)
-                buffer.appendBuffer(await readBlock(0))
-                buffer.appendBuffer(await readBlock(1))
-               
-                video.addEventListener("timeupdate", function(){
-                    let time = video.currentTime
-                    
-                })
-               
+                async function timeChange(){
+                    let time = video.currentTime   
+                    let curBlock = false
+                    let nextBlock = false
+                    console.log(video.buffered)
+                    for(let i=0; i<video.buffered.length; i++){
+                        let start = video.buffered.start(i)
+                        let end = video.buffered.end(i)
+                        if(time>=start && time<end){
+                            curBlock = true
+                            if(time >= end-timeToLoad){
+                                nextBlock = true
+                            }
+                        }
+                    }
+                    console.log(curBlock, nextBlock, time, buffer.buffered)
+                    let blockIndex = Math.floor(time*1000 / segmentSize) + 1
+                    if(!curBlock){
+                        await readAndAppend(buffer, blockIndex)
+                    }
+                    if(nextBlock){
+                        await readAndAppend(buffer, blockIndex+1)
+                    }
+                   
+                }
+                await readAndAppend(buffer, 0)
+                await readAndAppend(buffer, 1)
+            
+                video.addEventListener("timeupdate", timeChange)
+                video.addEventListener("seeking", timeChange)
             })
 
             
         })()
        
-
-        async function readBlock(blcok){
-            let url = url_video + `/` + blcok
+        let appendList = []
+        let readingBlock = {}
+        async function readAndAppend(buffer, index){
+            if(readingBlock[index]){
+                return
+            }
+            readingBlock[index] = true
+            return new Promise((resolve, reject)=>{
+                readBlock(index).then(data=>{
+                    readingBlock[index] = false
+                    if(buffer.updating){
+                        appendList.push(data)
+                        return
+                    }
+                    buffer.onupdateend = function(){
+                        buffer.onupdateend = null
+                        if(appendList.length > 0){
+                            next()
+                            function next(){
+                                let data = appendList.shift()
+                                if(!data){
+                                    resolve()
+                                    return
+                                }
+                                buffer.onupdateend = function(){
+                                    buffer.onupdateend = null
+                                    next()
+                                }
+                                buffer.appendBuffer(data)
+                            }
+                        }else{
+                            resolve()
+                        }  
+                    }
+                    buffer.appendBuffer(data)
+                }, reject)
+            })
+        }
+        
+        async function readBlock(block){
+            console.log("读取了", block)
+            let url = url_video + `/` + block
             let {data} = await axios(url, {responseType: "arraybuffer"})
             return data
         }

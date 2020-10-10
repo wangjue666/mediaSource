@@ -12,7 +12,7 @@
    <Representation id="1" mimeType="video/mp4" codecs="avc1.64001F,mp4a.40.2" width="1024" height="576" frameRate="30" sar="1:1" bandwidth="500604">
     <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"/>
     <BaseURL>a_dashinit.mp4</BaseURL>
-    <SegmentList timescale="15360" duration="921600">
+    <SegmentList timescale="15360" duration="60000">
      <Initialization range="0-1377"/>
      <SegmentURL mediaRange="1378-1979709" indexRange="1378-1421"/>
      <SegmentURL mediaRange="1979710-5052396" indexRange="1979710-1979753"/>
