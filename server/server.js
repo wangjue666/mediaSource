@@ -56,7 +56,7 @@ async function readMPD(name){
     
    
     _cache[name] = {
-        duration: Math.floor(duration),mimeType, codecs, width, height, segmentSize,
+        duration: Math.floor(duration),mimeType, codecs, width, height, segmentSize, segmentLen: segments.length,
         segments
     }
     return _cache[name]
@@ -73,15 +73,15 @@ async function read(file, start, end){
 router.get("/meta/:name",async ctx=>{
     const {name} = ctx.params
     let mpd = await readMPD(name)
-    let {duration,mimeType, codecs, width, height, segmentSize} = mpd
-    ctx.body = {duration,mimeType, codecs, width, height, segmentSize}
+    let {duration,mimeType, codecs, width, height, segmentSize, segmentLen} = mpd
+    ctx.body = {duration,mimeType, codecs, width, height, segmentSize, segmentLen}
 })
 
 router.get("/video/:name/:block", async ctx=>{
     const {name, block} = ctx.params
     let mpd = await readMPD(name)
     const [start, end] = mpd.segments[block]
-    let buffer = await read(path.resolve("videos/", `${name}_dashinit.mp4`), start, end)
+    let buffer = await read(path.resolve("videos/", `${name}_dashinit.mp4`), start, end+1)
    
     ctx.set("content-type", mpd.mimeType)
     ctx.set("content-length", buffer.length)

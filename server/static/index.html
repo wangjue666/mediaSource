@@ -6,9 +6,61 @@
     <title>Document</title>
 </head>
 <body>
-    <video width="500" autoplay controls>
+    <video id="v1"  autoplay controls>
         浏览器版本过低
     </video>
-    <script></script>
+    <script src="./axios.js"></script>
+    <script>
+        const url_meta = "/meta/a"
+        const url_video = "/video/a"
+        const video = document.querySelector("#v1")
+
+
+        ;;;;;;;;;;;
+        (async function (){
+            //1.检查MS
+            if(!window.MediaSource){
+                alert("您的浏览器版本过低")
+                return
+            }
+
+            //2.读取视频信息
+            let {data: {duration,mimeType, codecs, width, height, segmentSize, segmentLen}} = await axios(url_meta)
+            console.log(duration,mimeType, codecs, width, height, segmentSize, segmentLen)
+            const segmentCount = Math.ceil(duration*1000/segmentSize)
+            console.log(segmentLen)
+            const encode = `${mimeType}; codecs=${codecs}`
+            //3.检测媒体编码是否支持
+            if(!MediaSource.isTypeSupported(encode)){
+                alert("编码不支持")
+                return
+            }
+
+            //4.MediaSource
+            let ms = new MediaSource()
+            let url = URL.createObjectURL(ms)
+            video.src = url
+            ms.addEventListener("sourceopen", async ()=>{
+                let buffer = ms.addSourceBuffer(encode)
+                buffer.appendBuffer(await readBlock(0))
+                buffer.appendBuffer(await readBlock(1))
+               
+                video.addEventListener("timeupdate", function(){
+                    let time = video.currentTime
+                    
+                })
+               
+            })
+
+            
+        })()
+       
+
+        async function readBlock(blcok){
+            let url = url_video + `/` + blcok
+            let {data} = await axios(url, {responseType: "arraybuffer"})
+            return data
+        }
+    </script>
 </body>
 </html>
